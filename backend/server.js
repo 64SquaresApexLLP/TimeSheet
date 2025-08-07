@@ -78,6 +78,18 @@ app.post("/api/auth/verify-otp", async (req, res) => {
   }
 });
 
+app.get("/admin/all-tasks", async (req, res) => {
+  const tasks = await TaskModel.find(); // Adjust as per your DB schema
+  const grouped = {};
+
+  tasks.forEach(task => {
+    if (!grouped[task.user]) grouped[task.user] = [];
+    grouped[task.user].push({ text: task.text });
+  });
+
+  res.json(grouped);
+});
+
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
