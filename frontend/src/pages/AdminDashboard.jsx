@@ -1,55 +1,56 @@
+import { useState, useEffect } from "react";
+import LogoutBtn from "../components/LogoutBtn";
+import UserCard from "../components/UserCard";
+
 export default function AdminDashboard() {
-    // Static example data
-    const usersData = [
-      {
-        _id: "1",
-        email: "alice@example.com",
-        tasks: [
-          { text: "Complete UI for dashboard", date: "2025-08-06" },
-          { text: "Review PR #42", date: "2025-08-06" },
-        ],
-      },
-      {
-        _id: "2",
-        email: "bob@example.com",
-        tasks: [
-          { text: "Fix login bug", date: "2025-08-07" },
-          { text: "Update task API", date: "2025-08-07" },
-        ],
-      },
-    ];
-  
-    return (
-      <div className="p-8 bg-gray-100 min-h-screen">
-        <h1 className="text-3xl font-extrabold text-blue-800 mb-8 text-center">
-          👨‍💼 Admin Dashboard
-        </h1>
-  
-        {usersData.length === 0 ? (
-          <p className="text-center text-gray-600 text-lg">No tasks found.</p>
-        ) : (
-          <div className="grid gap-6">
-            {usersData.map((user) => (
-              <div
-                key={user._id}
-                className="bg-white shadow-lg rounded-lg p-6 border border-gray-200"
-              >
-                <h2 className="text-xl font-bold text-blue-600 mb-2">
-                  {user.email}
-                </h2>
-                <ul className="list-disc ml-6 text-gray-700">
-                  {user.tasks.map((task, index) => (
-                    <li key={index} className="mb-1">
-                      <span className="font-medium text-black">{task.text}</span>{" "}
-                      <span className="text-sm text-gray-500">({task.date})</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        )}
+  const [usersData, setUsersData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/api/auth/users");
+        const data = await res.json();
+        setUsersData(data);
+      } catch (err) {
+        console.error("Error fetching users:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-blue-50 to-pink-100 p-8 relative">
+      {/* Logout Button */}
+      <div className="absolute top-6 right-6">
+        <LogoutBtn />
       </div>
-    );
-  }
-  
+
+      {/* Page Title */}
+      <h1 className="text-4xl md:text-6xl font-extrabold text-blue-900 text-center mt-6 mb-6 drop-shadow-lg">
+        Admin Dashboard
+      </h1>
+
+      <hr className="border-t-4 border-blue-500 w-full mx-auto my-6 rounded-full" />
+
+      <div className="mb-8 mt-4">
+        <h2 className="text-2xl font-bold text-gray-800">📋 Users</h2>
+      </div>
+
+      {loading ? (
+        <p className="text-center text-gray-700 text-lg italic">Loading users...</p>
+      ) : usersData.length === 0 ? (
+        <p className="text-center text-gray-700 text-lg italic">No users found.</p>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {usersData.map((user) => (
+            <UserCard key={user._id} user={user} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

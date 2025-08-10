@@ -12,31 +12,76 @@ export default function LoginPage() {
 
 
   const sendOtp = async () => {
+    // Basic email validation
+    if (!email || !email.includes('@')) {
+      setMessage('❌ Please enter a valid email address');
+      return;
+    }
+  
     setLoading(true);
+    setMessage('');
+  
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/send-otp", { email });
+      const response = await axios.post(
+        'http://localhost:3000/api/auth/send-otp', // ✅ Ensure this matches backend
+        { email },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+  
       setOtpSent(true);
-      setMessage(res.data.message);
-    } catch (err) {
-      setMessage("❌ Failed to send OTP");
+      setMessage(response.data?.message || '✅ OTP sent successfully');
+    } catch (error) {
+      console.error('Error sending OTP:', error);
+  
+      if (error.response) {
+        // Server responded with an error
+        const errorMsg =
+          error.response.data?.error ||
+          error.response.data?.message ||
+          `Status ${error.response.status}`;
+        setMessage(`❌ Failed to send OTP: ${errorMsg}`);
+      } else if (error.request) {
+        // No response from server
+        setMessage(
+          '❌ No response from server. Please check if the API is running.'
+        );
+      } else {
+        // Other error
+        setMessage(`❌ Request error: ${error.message}`);
+      }
     } finally {
       setLoading(false);
     }
   };
-
+  
+  
   const verifyOtp = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.post("http://localhost:5000/api/auth/verify-otp", { email, otp });
-      setMessage(`✅ ${res.data.message}`);
-      navigate("/dashboard");
+  setLoading(true);
+  try {
+    const res = await axios.post("http://localhost:3000/api/auth/verify-otp", { email, otp });
+    setMessage(`✅ ${res.data.message}`);
 
-    } catch (err) {
-      setMessage("❌ Invalid OTP");
-    } finally {
-      setLoading(false);
+    // Store user info if not already stored
+    localStorage.setItem("user", JSON.stringify({ email }));
+    console.log(email);
+    // Conditional redirect
+    if (email === "sasesudarshan@gmail.com") {
+      navigate("/dashboard");
+    } else {
+      navigate("/dashboard");
     }
-  };
+
+  } catch (err) {
+    setMessage("❌ Invalid OTP");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-200 via-purple-200 to-pink-200 flex items-center justify-center px-4">
@@ -113,7 +158,7 @@ export default function LoginPage() {
 
         {/* Divider */}
         <div className="mt-10 text-center text-xs text-gray-400">
-          © 2025 Timesheet App. All rights reserved.
+          © 2025 Sudarshan. All rights reserved.
         </div>
       </div>
     </div>
