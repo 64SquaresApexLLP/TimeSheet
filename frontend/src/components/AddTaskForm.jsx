@@ -1,89 +1,99 @@
-import { useEffect, useState } from "react";
-import TaskCard from "../components/TaskCard";
-import AddTaskForm from "../components/AddTaskForm";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import axios from "axios";
 
-export default function Dashboard() {
-  const [user, setUser] = useState(null);
-  const [tasks, setTasks] = useState([]);
-  const navigate = useNavigate();
+const AddTaskForm = ({ email, onTaskAdded, existingTasks }) => {
+  // existingTasks is an array of tasks already added, needed to calculate total hours per day
 
-  const handleProfileClick = () => {
-    navigate("/profile");
-  };
+  const [project, setProject] = useState("");
+  const [date, setDate] = useState("");
+  const [hours, setHours] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const fetchTasks = () => {
-    fetch(`http://localhost:3000/api/auth/tasks/${user.email}`)
-      .then((res) => res.json())
-      .then((data) => setTasks(data))
-      .catch((err) => console.error("Error fetching tasks:", err));
-  };
-
-  const handleStatusUpdate = (taskId, newStatus) => {
-    if (!window.confirm(`Are you sure you want to mark this task as "${newStatus}"?`)) {
+  const handleAddTask = async () => {
+    if (!project.trim() || !date || !hours) {
+      alert("Please fill out project name, date, and hours worked");
       return;
     }
-    fetch(`http://localhost:3000/api/auth/tasks/${user.email}/${taskId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus }),
-    })
-      .then((res) => res.json())
-      .then(() => fetchTasks())
-      .catch((err) => console.error("Error updating task:", err));
+
+    const hrsNum = Number(hours);
+    if (isNaN(hrsNum) || hrsNum <= 0) {
+      alert("Please enter a valid number of hours greater than 0");
+      return;
+    }
+
+    // Calculate total hours already logged on that date (including this new entry)
+    const existingHours = existingTasks
+      ?.filter((task) => task.date === date)
+      .reduce((sum, task) => sum + (Number(task.hours) || 0), 0);
+
+    if (existingHours + hrsNum > 8) {
+      alert(
+        `Total working hours for ${date} cannot exceed 8 hours. You have already logged ${existingHours} hours.`
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/auth/tasks/${email}`,
+        { project: project.trim(), date, hours: hrsNum }
+      );
+
+      // Reset form fields
+      setProject("");
+      setDate("");
+      setHours("");
+
+      // Update parent task list
+      if (onTaskAdded) {
+        onTaskAdded(res.data);
+      }
+    } catch (err) {
+      console.error("Error adding task:", err);
+      alert(err.response?.data?.error || "Failed to add task");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
-      const dummyUser = {
-        name: "Sudarshan Sase",
-        email: "sudarshan@example.com",
-      };
-      localStorage.setItem("user", JSON.stringify(dummyUser));
-      setUser(dummyUser);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (user?.email) {
-      fetchTasks();
-    }
-  }, [user]);
-
-  const groupedTasks = tasks.reduce((acc, task) => {
-    if (!acc[task.date]) acc[task.date] = [];
-    acc[task.date].push(task);
-    return acc;
-  }, {});
-
   return (
-    <div className="p-6 relative min-h-screen bg-gray-50">
-      {/* Top Bar */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-semibold">📋 Daily Task Tracker</h1>
-        {user && (
-          <div onClick={handleProfileClick} className="text-right cursor-pointer">
-            <p className="text-sm text-gray-600">👤 Logged in as</p>
-            <p className="font-medium text-gray-800">{user.name}</p>
-          </div>
-        )}
-      </div>
+    <div className="flex flex-wrap items-center gap-2 mb-6">
+      <input
+        type="text"
+        placeholder="Project Name"
+        value={project}
+        onChange={(e) => setProject(e.target.value)}
+        className="border rounded-lg px-4 py-2 flex-1 min-w-[200px]"
+      />
 
-      {/* Add Task Form */}
-      <AddTaskForm user={user} onTaskAdded={fetchTasks} />
+      <input
+        type="date"
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+        className="border rounded-lg px-4 py-2"
+      />
 
-      {/* Render tasks */}
-      {Object.entries(groupedTasks).map(([date, tasks]) => (
-        <TaskCard
-          key={date}
-          date={date}
-          tasks={tasks}
-          onStatusChange={handleStatusUpdate}
-        />
-      ))}
+      <input
+        type="number"
+        min="0"
+        step="1"
+        placeholder="Hours Worked"
+        value={hours}
+        onChange={(e) => setHours(e.target.value)}
+        className="border rounded-lg px-4 py-2 w-[120px]"
+      />
+
+      <button
+        onClick={handleAddTask}
+        disabled={loading}
+        className="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 disabled:opacity-50"
+      >
+        {loading ? "Adding..." : "Add"}
+      </button>
     </div>
   );
-}
+};
+
+export default AddTaskForm;

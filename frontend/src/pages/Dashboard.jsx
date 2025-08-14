@@ -1,73 +1,135 @@
 import { useEffect, useState } from "react";
-import TaskCard from "../components/TaskCard";
-import AddTaskForm from "../components/AddTaskForm";
 import { useNavigate } from "react-router-dom";
+import DashboardWeeklyView from "../components/DashboardWeeklyView";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [tasks, setTasks] = useState([]);
+  const [showDownloadOptions, setShowDownloadOptions] = useState(false);
   const navigate = useNavigate();
 
-  const handleProfileClick = () => {
-    navigate(`/profile/${user.email}`);
-  };
-
+  // --- Fetch user from localStorage ---
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     } else {
-      // Redirect if no user is found
-      navigate("/");
+      const dummyUser = { name: "Sudarshan Sase", email: "sudarshan@example.com" };
+      localStorage.setItem("user", JSON.stringify(dummyUser));
+      setUser(dummyUser);
     }
-  }, [navigate]);
+  }, []);
 
-  useEffect(() => {
-    if (user?.email) {
-      fetchTasks(user.email);
-    }
-  }, [user]);
-
-  const fetchTasks = (email) => {
-    fetch(`http://localhost:3000/api/auth/tasks/${email}`)
-      .then((res) => res.json())
-      .then((data) => setTasks(data))
-      .catch((err) => console.error("Error fetching tasks:", err));
+  // Export Excel
+  const exportToExcel = () => {
+    const table = document.querySelector("table");
+    const ws = XLSX.utils.table_to_sheet(table);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Timesheet");
+    XLSX.writeFile(wb, "timesheet.xlsx");
   };
 
-  const groupedTasks = tasks.reduce((acc, task) => {
-    if (!acc[task.date]) acc[task.date] = [];
-    acc[task.date].push(task);
-    return acc;
-  }, {});
+  // Export PDF
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    autoTable(doc, {
+      html: "#timesheet-table",
+      theme: "grid",
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [41, 128, 185] },
+    });
+    doc.save("timesheet.pdf");
+  };
+
+  // --- Fetch tasks ---
+  const fetchTasks = () => {
+    if (!user?.email) return;
+
+    fetch(`http://localhost:3000/api/auth/tasks/${user.email}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("Error fetching tasks:", errorText);
+          setTasks([]);
+          return;
+        }
+        return res.json();
+      })
+      .then((data) => setTasks(Array.isArray(data) ? data : []))
+      .catch((err) => {
+        console.error("Fetch error:", err);
+        setTasks([]);
+      });
+  };
+
+  useEffect(() => {
+    if (user?.email) fetchTasks();
+  }, [user]);
+
+  // --- Handle profile click ---
+  const handleProfileClick = () => navigate("/profile");
 
   return (
     <div className="p-6 relative min-h-screen bg-gray-50">
-      {/* Top Bar with User Info */}
+      {/* Top Bar */}
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-semibold">📋 Daily Task Tracker</h1>
         {user && (
           <div onClick={handleProfileClick} className="text-right cursor-pointer">
             <p className="text-sm text-gray-600">👤 Logged in as</p>
-            <p className="font-medium text-gray-800">{user.name}</p>
+            <p className="font-medium text-gray-800">{user.email}</p>
           </div>
         )}
       </div>
 
-      {/* Add Task Form */}
-      <AddTaskForm
-        user={user}
-        onTaskAdded={() => {
-          fetch(`http://localhost:3000/api/auth/tasks/${user.email}`)
-            .then((res) => res.json())
-            .then((data) => setTasks(data));
-        }}
-      />
+      {/* Notes */}
+      <div className="space-y-2 mb-4">
+        <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-3 rounded">
+          <strong>Onsite Employees:</strong> Please ensure you log a total of <strong>8 hours</strong> each day.
+        </div>
+        <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-3 rounded">
+          <strong>Onshore Employees:</strong> Please ensure you log a total of <strong>8.5 hours</strong> each day.
+        </div>
+      </div>
 
-      {/* Render tasks by date */}
-      {Object.entries(groupedTasks).map(([date, tasks]) => (
-        <TaskCard key={date} date={date} tasks={tasks} />
-      ))}
+      {/* Weekly Timesheet Table */}
+      {user?.email && <DashboardWeeklyView email={user.email} />}
+
+      {/* Download Button */}
+      <div className="mt-4">
+        {!showDownloadOptions ? (
+          <button
+            onClick={() => setShowDownloadOptions(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-md transition"
+          >
+            📥 Download
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button
+              onClick={exportToPDF}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-md transition"
+            >
+              📄 PDF
+            </button>
+            <button
+              onClick={exportToExcel}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-md transition"
+            >
+              📊 Excel
+            </button>
+            <button
+              onClick={() => setShowDownloadOptions(false)}
+              className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg shadow-md transition"
+            >
+              ❌ Cancel
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

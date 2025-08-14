@@ -7,15 +7,19 @@ const Profile = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem('user'));
+    // Retrieve and parse user from localStorage
+    const storedUserData = localStorage.getItem("user");
+    const storedUser = storedUserData ? JSON.parse(storedUserData) : null;
+
     if (storedUser?.email) {
-      console.log(storedUser?.email);
-      fetch(`http://localhost:3000/api/auth/users/${storedUser.email}`)
+      console.log("Using stored email:", storedUser.email);
+
+      fetch(`http://localhost:3000/api/auth/user/${storedUser.email}`)
         .then(res => res.json())
         .then(data => setUser(data))
         .catch(err => console.error("Error fetching user details:", err));
     } else {
-      navigate("/"); // Redirect to login if no user in localStorage
+      navigate("/"); // Redirect if no user in localStorage
     }
   }, [navigate]);
 
@@ -26,6 +30,12 @@ const Profile = () => {
       </div>
     );
   }
+
+  // Format createdAt date nicely
+  const formattedDate = new Date(user.createdAt).toLocaleString('en-IN', {
+    dateStyle: 'long',
+    timeStyle: 'short'
+  });
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-100 via-blue-50 to-pink-100 p-6">
@@ -44,6 +54,7 @@ const Profile = () => {
           <p className="text-gray-700"><strong>Name:</strong> {user.name}</p>
           <p className="text-gray-700"><strong>Email:</strong> {user.email}</p>
           <p className="text-gray-700"><strong>Role:</strong> {user.role}</p>
+          <p className="text-gray-700"><strong>Joined On:</strong> {formattedDate}</p>
         </div>
 
         {/* Buttons */}

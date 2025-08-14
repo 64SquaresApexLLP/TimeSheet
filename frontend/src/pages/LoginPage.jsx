@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
+  const [name, setName] = useState("");       // new state for name
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
@@ -10,78 +11,76 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-
   const sendOtp = async () => {
-    // Basic email validation
-    if (!email || !email.includes('@')) {
-      setMessage('❌ Please enter a valid email address');
+    // Validate name & email
+    if (!name.trim()) {
+      setMessage("❌ Please enter your name");
       return;
     }
-  
+    if (!email || !email.includes("@")) {
+      setMessage("❌ Please enter a valid email address");
+      return;
+    }
+
     setLoading(true);
-    setMessage('');
-  
+    setMessage("");
+
     try {
       const response = await axios.post(
-        'http://localhost:3000/api/auth/send-otp', // ✅ Ensure this matches backend
-        { email },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+        "http://localhost:3000/api/auth/send-otp",
+        { email ,name },
+        { headers: { "Content-Type": "application/json" } }
       );
-  
+
       setOtpSent(true);
-      setMessage(response.data?.message || '✅ OTP sent successfully');
+      setMessage(response.data?.message || "✅ OTP sent successfully");
     } catch (error) {
-      console.error('Error sending OTP:', error);
-  
+      console.error("Error sending OTP:", error);
+
       if (error.response) {
-        // Server responded with an error
         const errorMsg =
           error.response.data?.error ||
           error.response.data?.message ||
           `Status ${error.response.status}`;
         setMessage(`❌ Failed to send OTP: ${errorMsg}`);
       } else if (error.request) {
-        // No response from server
         setMessage(
-          '❌ No response from server. Please check if the API is running.'
+          "❌ No response from server. Please check if the API is running."
         );
       } else {
-        // Other error
         setMessage(`❌ Request error: ${error.message}`);
       }
     } finally {
       setLoading(false);
     }
   };
-  
-  
+
   const verifyOtp = async () => {
-  setLoading(true);
-  try {
-    const res = await axios.post("http://localhost:3000/api/auth/verify-otp", { email, otp });
-    setMessage(`✅ ${res.data.message}`);
+    setLoading(true);
+    try {
+      const res = await axios.post("http://localhost:3000/api/auth/verify-otp", {
+        email,
+        otp,
+      });
+      setMessage(`✅ ${res.data.message}`);
 
-    // Store user info if not already stored
-    localStorage.setItem("user", JSON.stringify({ email }));
-    console.log(email);
-    // Conditional redirect
-    if (email === "sasesudarshan@gmail.com") {
-      navigate("/dashboard");
-    } else {
-      navigate("/dashboard");
+      // Store user info with name
+      const userData = { name: name.trim(), email };
+      localStorage.setItem("user", JSON.stringify(userData));
+
+      setTimeout(() => {
+        if (email.trim().toLowerCase() === "sasesudarshan@gmail.com") {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
+      }, 100);
+    } catch (err) {
+      setMessage("❌ Invalid OTP");
+    } finally {
+      setLoading(false);
     }
-
-  } catch (err) {
-    setMessage("❌ Invalid OTP");
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-200 via-purple-200 to-pink-200 flex items-center justify-center px-4">
@@ -95,6 +94,17 @@ export default function LoginPage() {
         <h2 className="text-xl font-semibold text-gray-800 mb-6 text-center">
           Login with OTP
         </h2>
+
+        {/* Name Input */}
+        {!otpSent && (
+          <input
+            type="text"
+            placeholder="👤 Enter your name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 transition duration-300"
+          />
+        )}
 
         {/* Email Input */}
         <input
