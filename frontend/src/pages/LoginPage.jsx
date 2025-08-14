@@ -27,7 +27,7 @@ export default function LoginPage() {
 
     try {
       const response = await axios.post(
-        "http://localhost:3000/api/auth/send-otp",
+        `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/auth/send-otp`,
         { email ,name },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -58,7 +58,7 @@ export default function LoginPage() {
   const verifyOtp = async () => {
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:3000/api/auth/verify-otp", {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/auth/verify-otp`, {
         email,
         otp,
       });
@@ -70,7 +70,7 @@ export default function LoginPage() {
 
       setTimeout(() => {
         if (email.trim().toLowerCase() === "sasesudarshan@gmail.com") {
-          navigate("/admin");
+          navigate("/admindashboard");
         } else {
           navigate("/dashboard");
         }

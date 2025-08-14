@@ -48,7 +48,7 @@ export default function Dashboard() {
   const fetchTasks = () => {
     if (!user?.email) return;
 
-    fetch(`http://localhost:3000/api/auth/tasks/${user.email}`)
+    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/auth/tasks/${user.email}`)
       .then(async (res) => {
         if (!res.ok) {
           const errorText = await res.text();

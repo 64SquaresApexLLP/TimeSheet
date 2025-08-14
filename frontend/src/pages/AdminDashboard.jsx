@@ -41,7 +41,7 @@ const AdminPanel = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:3000/api/auth/users`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/auth/users/`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       setTimesheetData(data);

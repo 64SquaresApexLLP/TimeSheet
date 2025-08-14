@@ -13,8 +13,8 @@ const Profile = () => {
 
     if (storedUser?.email) {
       console.log("Using stored email:", storedUser.email);
-
-      fetch(`http://localhost:3000/api/auth/user/${storedUser.email}`)
+            
+      fetch(import.meta.env.VITE_API_URL+`/api/auth/user/${storedUser.email}`)
         .then(res => res.json())
         .then(data => setUser(data))
         .catch(err => console.error("Error fetching user details:", err));
