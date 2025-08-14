@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindConfig,
+    
   ],
 
   // ✅ Output build to backend/client
@@ -18,6 +19,6 @@ export default defineConfig({
   // ✅ Support React Router (SPA)
   server: {
     historyApiFallback: true,
-    port: 3000,
+    port: 5176,
   }
 })
