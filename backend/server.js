@@ -14,8 +14,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
+  'http://localhost:3389',
+  'http://localhost:5176',
 ];
 
 app.use(cors({
@@ -53,5 +53,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(3000, () => {
-  console.log('🚀 Server running on http://localhost:3000');
+  console.log('🚀 Server running on http://localhost:3389');
 });
