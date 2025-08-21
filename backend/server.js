@@ -13,45 +13,28 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const allowedOrigins = [
-  'http://localhost:3389',
-  'http://localhost:5176',
-];
-
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      return callback(new Error('Not allowed by CORS: ' + origin));
-    }
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  origin: (origin, callback) => callback(null, true), // Allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
 
 app.use(express.json());
 
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('✅ MongoDB connected');
-  })
-  .catch(err => {
-    console.error('❌ MongoDB connection error:', err);
-  });
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
 const frontendPath = path.join(__dirname, 'client');
 app.use(express.static(frontendPath));
 
 app.use('/api/auth', authRoutes);
 
-app.get('*', (req, res) => {
+app.get('/:path', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-app.listen(3000, () => {
+app.listen(3389, () => {
   console.log('🚀 Server running on http://localhost:3389');
 });

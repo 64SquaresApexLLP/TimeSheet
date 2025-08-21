@@ -1,6 +1,6 @@
 import express from 'express';
 import User from '../backend/User.js';
-import { sendOTP } from '../backend/sendEmail.js';
+import { sendOTP } from './sendEmail.js';
 import Task from './Task.js'; // update path as needed
 
 
@@ -88,7 +88,7 @@ router.post('/verify-otp', async (req, res) => {
 });
 
 
-router.get('/users', async (req, res) => {
+router.get('/user/:id', async (req, res) => {
   try {
     const usersWithProjects = await User.aggregate([
       {
@@ -115,41 +115,41 @@ router.get('/users', async (req, res) => {
   }
 });
 
-router.post("/tasks/weekly/:email", async (req, res) => {
-  try {
-    const { email } = req.params;
-    const { weekDates, tableData } = req.body;
-    // weekDates: ["2025-08-12", "2025-08-13", ...]
-    // tableData: { KPI: [8,8,8,8,8], AUM: [2,3,4,5,6] }
+  router.post("/tasks/weekly/:email", async (req, res) => {
+    try {
+      const { email } = req.params;
+      const { weekDates, tableData } = req.body;
+      // weekDates: ["2025-08-12", "2025-08-13", ...]
+      // tableData: { KPI: [8,8,8,8,8], AUM: [2,3,4,5,6] }
 
-    if (!Array.isArray(weekDates) || weekDates.length === 0) {
-      return res.status(400).json({ error: "weekDates is required" });
-    }
-
-    // Prepare and upsert tasks for each day
-    const bulkOps = weekDates.map((date, index) => ({
-      updateOne: {
-        filter: { userEmail: email, date },
-        update: {
-          userEmail: email,
-          date,
-          projects: [
-            { project: "KPI", hours: Number(tableData.KPI[index] || 0) },
-            { project: "AUM", hours: Number(tableData.AUM[index] || 0) }
-          ]
-        },
-        upsert: true
+      if (!Array.isArray(weekDates) || weekDates.length === 0) {
+        return res.status(400).json({ error: "weekDates is required" });
       }
-    }));
 
-    await Task.bulkWrite(bulkOps);
+      // Prepare and upsert tasks for each day
+      const bulkOps = weekDates.map((date, index) => ({
+        updateOne: {
+          filter: { userEmail: email, date },
+          update: {
+            userEmail: email,
+            date,
+            projects: [
+              { project: "KPI", hours: Number(tableData.KPI[index] || 0) },
+              { project: "AUM", hours: Number(tableData.AUM[index] || 0) }
+            ]
+          },
+          upsert: true
+        }
+      }));
 
-    res.json({ message: "Weekly data saved successfully" });
-  } catch (err) {
-    console.error("Error saving weekly data:", err);
-    res.status(500).json({ error: "Failed to save weekly data" });
-  }
-});
+      await Task.bulkWrite(bulkOps);
+
+      res.json({ message: "Weekly data saved successfully" });
+    } catch (err) {
+      console.error("Error saving weekly data:", err);
+      res.status(500).json({ error: "Failed to save weekly data" });
+    }
+  });
 
 router.get('/user/:email', async (req, res) => {
   try {
