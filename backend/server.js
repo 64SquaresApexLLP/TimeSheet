@@ -16,7 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 
 const __dirname = path.dirname(__filename);
 
-const allowedOrigins = ["http://localhost:3389", "http://localhost:5176"];
+const allowedOrigins = ["http://localhost:3389", "http://localhost:5176","http://13.202.236.112:5176"];
 
 app.use(
   cors({
