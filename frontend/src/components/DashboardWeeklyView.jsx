@@ -14,10 +14,15 @@ const DashboardWeeklyView = ({ email }) => {
 
   const weekDates = getWeekDates(currentWeekStart);
 
-  const [tableData, setTableData] = useState({
-    KPI: weekDates.map(() => ""),
-    AUM: weekDates.map(() => ""),
-  });
+  // 🔹 Define all projects in one place
+  const projectsList = ["KPI", "AUM", "IMDP", "APM", "KA", "IM One"];
+
+  const [tableData, setTableData] = useState(
+    projectsList.reduce((acc, project) => {
+      acc[project] = weekDates.map(() => "");
+      return acc;
+    }, {})
+  );
 
   const handleInputChange = (row, colIndex, value) => {
     setTableData((prev) => {
@@ -34,14 +39,17 @@ const DashboardWeeklyView = ({ email }) => {
     }
 
     try {
-      const res = await fetch(`/api/auth/tasks/weekly/${encodeURIComponent(email)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          weekDates,
-          tableData,
-        }),
-      });
+      const res = await fetch(
+        `/api/auth/tasks/weekly/${encodeURIComponent(email)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            weekDates,
+            tableData,
+          }),
+        }
+      );
 
       const data = await res.json();
       if (res.ok) {
@@ -110,18 +118,18 @@ const DashboardWeeklyView = ({ email }) => {
           </tr>
         </thead>
         <tbody>
-          {["KPI", "AUM"].map((row) => (
+          {projectsList.map((row) => (
             <tr key={row}>
               <td className="border border-gray-300 p-2 font-semibold">{row}</td>
               {weekDates.map((_, colIndex) => (
                 <td key={colIndex} className="border border-gray-300 p-2">
                   <input
-                    type="text"
+                    type="number"
                     value={tableData[row][colIndex]}
                     onChange={(e) =>
                       handleInputChange(row, colIndex, e.target.value)
                     }
-                    className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-center"
                   />
                 </td>
               ))}

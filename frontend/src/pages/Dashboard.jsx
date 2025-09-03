@@ -85,16 +85,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Notes */}
-      <div className="space-y-2 mb-4">
-        <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-3 rounded">
-          <strong>Onsite Employees:</strong> Please ensure you log a total of <strong>8 hours</strong> each day.
-        </div>
-        <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-3 rounded">
-          <strong>Onshore Employees:</strong> Please ensure you log a total of <strong>8.5 hours</strong> each day.
-        </div>
-      </div>
-
+   
       {/* Weekly Timesheet Table */}
       {user?.email && <DashboardWeeklyView email={user.email} />}
 

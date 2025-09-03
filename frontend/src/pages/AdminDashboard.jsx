@@ -7,25 +7,32 @@ import { autoTable } from "jspdf-autotable";
 
 const AdminPanel = () => {
   const [view, setView] = useState("weekly");
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [monthOffset, setMonthOffset] = useState(0);
   const [timesheetData, setTimesheetData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
 
-  // Calculate date range
+  // Calculate date range with offset
   const getDateRange = () => {
     const today = new Date();
-    const start = new Date(today);
+
     if (view === "weekly") {
-      start.setDate(today.getDate() - today.getDay());
+      // Find start of the week
+      const start = new Date(today);
+      start.setDate(start.getDate() - start.getDay() + weekOffset * 7);
+
       return Array.from({ length: 7 }, (_, i) => {
         const d = new Date(start);
         d.setDate(start.getDate() + i);
         return d;
       });
     } else {
-      start.setDate(1);
-      const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+      // Monthly view with offset
+      const start = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+      const daysInMonth = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
+
       return Array.from({ length: daysInMonth }, (_, i) => {
         const d = new Date(start);
         d.setDate(i + 1);
@@ -36,12 +43,14 @@ const AdminPanel = () => {
 
   const dateRange = getDateRange();
 
-  // Fetch data
+  // Fetch timesheet data
   const fetchTimesheetData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/auth/users/`);
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/auth/users/`
+      );
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       setTimesheetData(data);
@@ -74,23 +83,9 @@ const AdminPanel = () => {
     doc.save("timesheet.pdf");
   };
 
-  // Handle single download button
-  const handleDownloadClick = () => {
-    setShowDownloadModal(true);
-  };
-
-  const handleDownloadChoice = (type) => {
-    if (type === "pdf") {
-      exportToPDF();
-    } else if (type === "excel") {
-      exportToExcel();
-    }
-    setShowDownloadModal(false);
-  };
-
   useEffect(() => {
     fetchTimesheetData();
-  }, [view]);
+  }, [view, weekOffset, monthOffset]);
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-blue-50 to-pink-100 p-8 relative">
@@ -105,40 +100,65 @@ const AdminPanel = () => {
       </h1>
       <hr className="border-t-4 border-blue-500 w-full mx-auto my-6 rounded-full" />
 
-      {/* View toggle */}
-      <div className="flex justify-between items-center mb-6 max-w-2xl mx-auto">
-        <h2 className="text-2xl font-bold text-gray-800">📊 Timesheet</h2>
+      {/* View toggle + Week navigation */}
+      <div className="flex flex-col items-center mb-6 max-w-3xl mx-auto gap-4">
         <div className="flex gap-2">
           <button
-            onClick={() => setView("weekly")}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${view === "weekly"
-                ? "bg-indigo-500 text-white shadow-md"
-                : "bg-gray-200 hover:bg-gray-300"
-              }`}
+            onClick={() => { setView("weekly"); setWeekOffset(0); }}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              view === "weekly" ? "bg-indigo-500 text-white shadow-md" : "bg-gray-200 hover:bg-gray-300"
+            }`}
           >
             Weekly
           </button>
           <button
-            onClick={() => setView("monthly")}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${view === "monthly"
-                ? "bg-indigo-500 text-white shadow-md"
-                : "bg-gray-200 hover:bg-gray-300"
-              }`}
+            onClick={() => { setView("monthly"); setMonthOffset(0); }}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              view === "monthly" ? "bg-indigo-500 text-white shadow-md" : "bg-gray-200 hover:bg-gray-300"
+            }`}
           >
             Monthly
           </button>
         </div>
-      </div>
 
-      {/* Single download button */}
-      {/* Single download button in the top-right corner */}
-      <div className="absolute top-6 right-">
-        <button
-          onClick={handleDownloadClick}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-md transition"
-        >
-          📥 Download
-        </button>
+        {/* Navigation buttons */}
+        {view === "weekly" ? (
+          <div className="flex gap-4 items-center">
+            <button
+              onClick={() => setWeekOffset(weekOffset - 1)}
+              className="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded-lg"
+            >
+              ⬅️ Prev Week
+            </button>
+            <span className="font-semibold">
+              Week of {dateRange[0].toLocaleDateString()} - {dateRange[6].toLocaleDateString()}
+            </span>
+            <button
+              onClick={() => setWeekOffset(weekOffset + 1)}
+              className="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded-lg"
+            >
+              Next Week ➡️
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-4 items-center">
+            <button
+              onClick={() => setMonthOffset(monthOffset - 1)}
+              className="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded-lg"
+            >
+              ⬅️ Prev Month
+            </button>
+            <span className="font-semibold">
+              {dateRange[0].toLocaleString("default", { month: "long", year: "numeric" })}
+            </span>
+            <button
+              onClick={() => setMonthOffset(monthOffset + 1)}
+              className="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded-lg"
+            >
+              Next Month ➡️
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Data */}
@@ -150,34 +170,21 @@ const AdminPanel = () => {
         <TimesheetTable timesheetData={timesheetData} dateRange={dateRange} />
       )}
 
-      {/* Download Modal */}
-      {showDownloadModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-          <div className="bg-white rounded-xl p-6 w-80 shadow-lg text-center">
-            <h2 className="text-lg font-bold mb-4">Choose download format</h2>
-            <div className="flex justify-around mb-4">
-              <button
-                onClick={() => handleDownloadChoice("pdf")}
-                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-md transition"
-              >
-                PDF
-              </button>
-              <button
-                onClick={() => handleDownloadChoice("excel")}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-md transition"
-              >
-                Excel
-              </button>
-            </div>
-            <button
-              onClick={() => setShowDownloadModal(false)}
-              className="text-gray-500 hover:text-gray-700 text-sm"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Download button */}
+      <div className="absolute top-6 left-6">
+        <button
+          onClick={exportToExcel}
+          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-md transition"
+        >
+          📊 Excel
+        </button>
+        <button
+          onClick={exportToPDF}
+          className="ml-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-md transition"
+        >
+          📄 PDF
+        </button>
+      </div>
     </div>
   );
 };
